@@ -1,12 +1,15 @@
 import os
 import random
 import sys
+import time
 from pathlib import Path
+
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap, QColor, QPen, QBrush
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.store import Store
 from app.bridge import NoteBridge
@@ -39,6 +42,39 @@ def make_icon():
     return QIcon(pm)
 
 
+LOG_FILE = DATA_DIR / "error.log"
+
+
+def _write_error(msg):
+    try:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+    except Exception:
+        pass
+
+
+def install_exception_hook():
+    def hook(exc_type, exc_value, exc_tb):
+        import traceback as tb
+        msg = "".join(tb.format_exception(exc_type, exc_value, exc_tb))
+        _write_error(msg)
+        try:
+            QMessageBox.critical(None, "桌面便签", "发生错误:\n" + str(exc_value))
+        except Exception:
+            pass
+
+    sys.excepthook = hook
+    try:
+        from PySide6.QtCore import qInstallMessageHandler
+        def msg_handler(mode, context, message):
+            if mode >= 2:  # Warning/Error/Fatal
+                _write_error(f"[{context.file}:{context.line}] {message}")
+        qInstallMessageHandler(msg_handler)
+    except Exception:
+        pass
+
+
 def random_position(screen):
     g = screen.availableGeometry()
     x = g.left() + random.randint(40, max(40, g.width() - 400))
@@ -47,6 +83,7 @@ def random_position(screen):
 
 
 def main():
+    install_exception_hook()
     app = QApplication(sys.argv)
     app.setApplicationName("StickyNotes")
     app.setQuitOnLastWindowClosed(False)
