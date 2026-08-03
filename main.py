@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.store import Store
 from app.bridge import NoteBridge
 from app.tray import create_tray
+from app.single_instance import SingleInstance
 
 if getattr(sys, "frozen", False):
     BASE = Path(sys._MEIPASS)
@@ -81,6 +82,11 @@ def main():
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(make_icon())
 
+    single = SingleInstance(app)
+    if not single.try_acquire():
+        # Another instance is already running; this process exits silently.
+        return 0
+
     engine = QQmlApplicationEngine()
     store = Store(DATA_DIR / "notes.db")
     bridge = NoteBridge(store, engine, QML_DIR)
@@ -93,6 +99,8 @@ def main():
 
     bridge.load_main_note()
 
+    single.showRequested.connect(bridge.showMainNote)
+
     tray.show()
 
     if os.environ.get("SMOKE"):
@@ -101,8 +109,10 @@ def main():
             app.quit()
         QTimer.singleShot(2500, _report)
 
-    sys.exit(app.exec())
+    code = app.exec()
+    single.close()
+    return code
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
