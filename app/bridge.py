@@ -32,11 +32,18 @@ class NoteBridge(QObject):
 
     def _create_window(self, note):
         note_id = note["id"]
-        x, y = self._clamp(note["x"], note["y"], 280, 380)
+        w = int(note.get("width") or 280)
+        h = int(note.get("height") or 384)
+        w = max(220, min(w, 520))
+        h = max(260, min(h, 700))
+        x, y = self._clamp(note["x"], note["y"], w, h)
         obj = self._component.createObject(None, {
             "noteId": note_id,
             "paperColor": note["color"],
             "noteOpacity": note["opacity"],
+            "sortMode": note.get("sort", "created_desc"),
+            "width": w,
+            "height": h,
             "x": x,
             "y": y,
         })
@@ -63,9 +70,20 @@ class NoteBridge(QObject):
 
     @Slot(int, result=list)
     def getTodos(self, note_id):
-        return self.store.list_todos(note_id)
+        note = self.store.get_note(note_id)
+        sort = note.get("sort", "created_desc") if note else "created_desc"
+        return self.store.list_todos(note_id, sort)
 
-    @Slot(int, str, result=int)
+    @Slot(int, str)
+    def setNoteSort(self, note_id, sort):
+        self.store.set_note_sort(note_id, sort)
+
+    @Slot(int, result=str)
+    def getNoteSort(self, note_id):
+        note = self.store.get_note(note_id)
+        return note.get("sort", "created_desc") if note else "created_desc"
+
+    @Slot(int, str, result=dict)
     def addTodo(self, note_id, text):
         return self.store.create_todo(note_id, text)
 
@@ -88,6 +106,10 @@ class NoteBridge(QObject):
     @Slot(int, int, int)
     def noteMoved(self, note_id, x, y):
         self.store.update_note_position(note_id, x, y)
+
+    @Slot(int, int, int)
+    def noteResized(self, note_id, w, h):
+        self.store.set_note_size(note_id, w, h)
 
     @Slot(int, float)
     def setNoteOpacity(self, note_id, opacity):

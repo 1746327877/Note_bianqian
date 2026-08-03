@@ -18,8 +18,11 @@ class Store:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 x REAL,
                 y REAL,
+                width REAL DEFAULT 280,
+                height REAL DEFAULT 384,
                 color TEXT DEFAULT '#FDF6E3',
                 opacity REAL DEFAULT 0.96,
+                sort TEXT DEFAULT 'created_desc',
                 created_at TEXT DEFAULT (datetime('now','localtime'))
             );
             CREATE TABLE IF NOT EXISTS todos (
@@ -32,6 +35,15 @@ class Store:
             );
             """
         )
+        try:
+            self._conn.execute("ALTER TABLE notes ADD COLUMN sort TEXT DEFAULT 'created_desc'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            self._conn.execute("ALTER TABLE notes ADD COLUMN width REAL DEFAULT 280")
+            self._conn.execute("ALTER TABLE notes ADD COLUMN height REAL DEFAULT 384")
+        except sqlite3.OperationalError:
+            pass
         self._conn.commit()
 
     def _row_to_dict(self, row):
@@ -68,12 +80,33 @@ class Store:
         self._conn.execute("UPDATE notes SET opacity = ? WHERE id = ?", (opacity, note_id))
         self._conn.commit()
 
+    def set_note_size(self, note_id, w, h):
+        self._conn.execute(
+            "UPDATE notes SET width = ?, height = ? WHERE id = ?", (w, h, note_id)
+        )
+        self._conn.commit()
+
+    def set_note_sort(self, note_id, sort):
+        self._conn.execute("UPDATE notes SET sort = ? WHERE id = ?", (sort, note_id))
+        self._conn.commit()
+
     def create_todo(self, note_id, text):
         cur = self._conn.execute(
             "INSERT INTO todos (note_id, text) VALUES (?, ?)", (note_id, text)
         )
         self._conn.commit()
-        return cur.lastrowid
+        todo_id = cur.lastrowid
+        row = self._conn.execute(
+            "SELECT id, text, done, created_at, done_at FROM todos WHERE id = ?",
+            (todo_id,),
+        ).fetchone()
+        return {
+            "id": row["id"],
+            "text": row["text"],
+            "done": bool(row["done"]),
+            "created_at": row["created_at"],
+            "done_at": row["done_at"],
+        }
 
     def toggle_todo(self, todo_id, done):
         done_at = time.strftime("%Y-%m-%d %H:%M:%S") if done else None
@@ -86,9 +119,25 @@ class Store:
         self._conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
         self._conn.commit()
 
-    def list_todos(self, note_id):
+    def list_todos(self, note_id, sort="created_desc"):
+        orders = {
+            "created_desc": "ORDER BY created_at DESC, id DESC",
+            "created_asc": "ORDER BY created_at ASC, id ASC",
+            "done_desc": "ORDER BY done ASC, done_at DESC, created_at DESC",
+        }
+        order = orders.get(sort, orders["created_desc"])
         rows = self._conn.execute(
-            "SELECT id, text, done FROM todos WHERE note_id = ? ORDER BY created_at, id",
+            f"SELECT id, text, done, created_at, done_at FROM todos "
+            f"WHERE note_id = ? {order}",
             (note_id,),
         ).fetchall()
-        return [{"id": r["id"], "text": r["text"], "done": bool(r["done"])} for r in rows]
+        return [
+            {
+                "id": r["id"],
+                "text": r["text"],
+                "done": bool(r["done"]),
+                "created_at": r["created_at"],
+                "done_at": r["done_at"],
+            }
+            for r in rows
+        ]

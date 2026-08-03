@@ -5,6 +5,7 @@ venv/
 dist/
 build/
 *.spec
+.vscode/
 data/
 *.db
 impeccable-taste-skill-使用说明.md
