@@ -52,13 +52,14 @@ class NoteBridge(QObject):
         obj.show()
         self.windows[note_id] = obj
 
-    def load_existing(self):
-        for note in self.store.list_notes():
-            self._create_window(note)
+    def load_main_note(self):
+        note_id = self.store.get_or_create_main_note()
+        note = self.store.get_note(note_id)
+        self._create_window(note)
+        return note_id
 
     def create_note(self, x, y):
-        color = random.choice(PALETTE)
-        note_id = self.store.create_note(x, y, color)
+        note_id = self.store.get_or_create_main_note()
         note = self.store.get_note(note_id)
         self._create_window(note)
         return note_id
@@ -97,11 +98,18 @@ class NoteBridge(QObject):
 
     @Slot(int)
     def deleteNote(self, note_id):
-        obj = self.windows.pop(note_id, None)
+        # 单便签模式:关闭只隐藏窗口,不删除任何数据
+        obj = self.windows.get(note_id)
         if obj is not None:
-            obj.close()
-            obj.deleteLater()
-        self.store.delete_note(note_id)
+            obj.hide()
+
+    @Slot()
+    def showMainNote(self):
+        if self.windows:
+            for obj in self.windows.values():
+                obj.show()
+        else:
+            self.load_main_note()
 
     @Slot(int, int, int)
     def noteMoved(self, note_id, x, y):

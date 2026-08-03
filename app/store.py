@@ -141,3 +141,21 @@ class Store:
             }
             for r in rows
         ]
+
+    def get_or_create_main_note(self):
+        """返回主便签 id;不存在则创建。历史遗留的多个便签会把待办合并到主便签后删除。"""
+        notes = self.list_notes()
+        if notes:
+            main_id = notes[0]["id"]
+            for note in notes[1:]:
+                self._conn.execute(
+                    "UPDATE todos SET note_id = ? WHERE note_id = ?",
+                    (main_id, note["id"]),
+                )
+                self._conn.execute("DELETE FROM notes WHERE id = ?", (note["id"],))
+            self._conn.commit()
+            return main_id
+        return self.create_note(100, 100, "#FDF6E3")
+
+    def count_todos(self):
+        return self._conn.execute("SELECT COUNT(*) FROM todos").fetchone()[0]

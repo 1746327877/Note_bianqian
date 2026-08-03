@@ -768,7 +768,6 @@ Window {
             }
             ScriptAction {
                 script: {
-                    root.opacity = 0
                     bridge.deleteNote(noteId)
                 }
             }
@@ -864,6 +863,14 @@ Window {
         sortMode = bridge.getNoteSort(noteId)
         reloadTodos()
         tapeColor = bridge.getTapeColor(noteId)
+        playAppear()
+    }
+
+    onVisibleChanged: {
+        if (visible) playAppear()
+    }
+
+    function playAppear() {
         root.opacity = noteOpacity
         content.opacity = 0
         content.scale = 0.94

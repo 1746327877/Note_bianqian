@@ -1,5 +1,4 @@
 import os
-import random
 import sys
 import time
 from pathlib import Path
@@ -75,13 +74,6 @@ def install_exception_hook():
         pass
 
 
-def random_position(screen):
-    g = screen.availableGeometry()
-    x = g.left() + random.randint(40, max(40, g.width() - 400))
-    y = g.top() + random.randint(40, max(40, g.height() - 440))
-    return x, y
-
-
 def main():
     install_exception_hook()
     app = QApplication(sys.argv)
@@ -97,12 +89,9 @@ def main():
     ctx = engine.rootContext()
     ctx.setContextProperty("bridge", bridge)
 
-    tray = create_tray(app, bridge, random_position)
+    tray = create_tray(app, bridge)
 
-    bridge.load_existing()
-    if not bridge.windows:
-        x, y = random_position(app.primaryScreen())
-        bridge.create_note(x, y)
+    bridge.load_main_note()
 
     tray.show()
 
