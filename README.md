@@ -50,10 +50,12 @@ pyinstaller --noconsole --name StickyNotes main.py
 
 ```
 main.py              # 入口:QApplication + 托盘 + 加载便签
+notes_cli.py         # 命令行接口,供 Agent 读写待办
 app/
   store.py           # SQLite 数据层
   bridge.py          # Python <-> QML 桥接
   tray.py            # 系统托盘
+  single_instance.py # 单实例限制
 qml/
   StickyNote.qml     # 单张便签界面 + 动画
 ```
@@ -61,3 +63,24 @@ qml/
 ## 数据位置
 
 便签数据保存在 `%APPDATA%/StickyNotes/notes.db`。
+
+## 供 Agent 使用(Claude Code / Cline 等桌面 Agent)
+
+桌面 Agent 可以通过 `notes_cli.py` 读取和修改待办事项,与便签程序实时同步。
+
+```bash
+python notes_cli.py list            # 查看未完成待办
+python notes_cli.py list --all      # 查看全部待办(含已完成)
+python notes_cli.py add "任务内容"   # 添加待办
+python notes_cli.py done <id>       # 标记完成
+python notes_cli.py undo <id>       # 标记未完成
+python notes_cli.py delete <id>     # 删除待办
+python notes_cli.py count           # 统计未完成/总数
+python notes_cli.py path            # 打印数据库路径
+```
+
+给 Agent 的提示词建议:
+
+> 我的待办事项在桌面便签里,数据库位于 `%APPDATA%/StickyNotes/notes.db`。
+> 请通过 `python notes_cli.py list` 查看待办,用 `python notes_cli.py add "..."`、
+> `done <id>`、`delete <id>` 来管理。完成后用 `python notes_cli.py list` 确认。
