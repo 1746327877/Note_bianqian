@@ -601,7 +601,13 @@ Window {
             Item {
                 id: row
                 width: list.width
-                height: 48
+                property bool expanded: false
+                property bool isLong: model.text.length > 12
+
+                height: expanded
+                        ? 7 + Math.max(20, todoText.implicitHeight) + 2 + 15 + 8
+                        : 48
+                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
                 Rectangle {
                     id: rowBg
@@ -650,13 +656,18 @@ Window {
                     id: todoText
                     anchors.left: check.right
                     anchors.leftMargin: 10
-                    anchors.right: delBtn.left
+                    anchors.right: expandBtn.left
                     anchors.rightMargin: 8
                     anchors.top: parent.top
                     anchors.topMargin: 7
+                    height: expanded ? implicitHeight : 18
+                    Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     text: model.text
                     color: done ? "#8A7864" : inkColor
-                    elide: Text.ElideRight
+                    elide: expanded ? Text.ElideNone : Text.ElideRight
+                    wrapMode: expanded ? Text.WrapAnywhere : Text.NoWrap
+                    maximumLineCount: expanded ? 100 : 1
+                    clip: true
                     font.family: "Microsoft YaHei"
                     font.pixelSize: 13
                     Behavior on color { ColorAnimation { duration: 260 } }
@@ -671,6 +682,15 @@ Window {
                         color: Qt.rgba(0.43, 0.35, 0.27, 0.45)
                         Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
                     }
+
+                    // full text tooltip on hover when collapsed
+                    ToolTip {
+                        id: fullTip
+                        visible: rowHover.containsMouse && !expanded && row.isLong
+                        text: model.text
+                        delay: 600
+                        width: Math.min(260, 200)
+                    }
                 }
 
                 Text {
@@ -684,6 +704,38 @@ Window {
                     font.pixelSize: 10
                     elide: Text.ElideRight
                     width: todoText.width
+                }
+
+                Rectangle {
+                    id: expandBtn
+                    width: 22
+                    height: 22
+                    radius: 11
+                    anchors.right: delBtn.left
+                    anchors.rightMargin: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    opacity: row.isLong ? 1 : 0
+                    scale: expandArea.pressed ? 0.85 : 1
+                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    color: expandArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.1) : "transparent"
+                    Behavior on color { ColorAnimation { duration: 160 } }
+
+                    IconGlyph {
+                        anchors.centerIn: parent
+                        kind: "chevron"
+                        size: 9
+                        color: mutedInk
+                        rotation: row.expanded ? 180 : 0
+                        Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    }
+                    MouseArea {
+                        id: expandArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: row.isLong
+                        onClicked: row.expanded = !row.expanded
+                    }
                 }
 
                 Rectangle {
@@ -960,6 +1012,12 @@ Window {
                     ctx.stroke()
                 }
                 arrow(s * 0.18, s * 0.82)
+            } else if (kind === "chevron") {
+                ctx.beginPath()
+                ctx.moveTo(s * 0.22, s * 0.36)
+                ctx.lineTo(s * 0.5, s * 0.64)
+                ctx.lineTo(s * 0.78, s * 0.36)
+                ctx.stroke()
             } else if (kind === "slider") {
                 ctx.beginPath()
                 ctx.moveTo(s * 0.1, s * 0.3)
