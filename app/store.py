@@ -119,6 +119,12 @@ class Store:
         self._conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
         self._conn.commit()
 
+    def update_todo(self, todo_id, text):
+        self._conn.execute(
+            "UPDATE todos SET text = ? WHERE id = ?", (text, todo_id)
+        )
+        self._conn.commit()
+
     def list_todos(self, note_id, sort="created_desc"):
         orders = {
             "created_desc": "ORDER BY created_at DESC, id DESC",

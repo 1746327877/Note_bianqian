@@ -617,13 +617,27 @@ Window {
                     Behavior on color { ColorAnimation { duration: 180 } }
                 }
 
+                Text {
+                    id: rowIndex
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 18
+                    horizontalAlignment: Text.AlignHCenter
+                    text: (index + 1)
+                    color: done ? Qt.rgba(0.29, 0.25, 0.21, 0.4) : mutedInk
+                    font.family: "Microsoft YaHei"
+                    font.pixelSize: 11
+                    Behavior on color { ColorAnimation { duration: 260 } }
+                }
+
                 Rectangle {
                     id: check
                     width: 22
                     height: 22
                     radius: 11
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8
+                    anchors.left: rowIndex.right
+                    anchors.leftMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
                     scale: checkArea.pressed ? 0.85 : 1
                     Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
@@ -693,6 +707,36 @@ Window {
                     }
                 }
 
+                TextInput {
+                    id: editInput
+                    anchors.left: todoText.left
+                    anchors.right: expandBtn.left
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: false
+                    z: 2
+                    color: inkColor
+                    font.family: "Microsoft YaHei"
+                    font.pixelSize: 13
+                    selectByMouse: true
+                    clip: true
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        radius: 5
+                        color: Qt.rgba(255, 255, 255, 0.7)
+                        border.width: 1
+                        border.color: accentDeep
+                        z: -1
+                    }
+
+                    onAccepted: saveEdit()
+                    onActiveFocusChanged: {
+                        if (!activeFocus && visible) saveEdit()
+                    }
+                }
+
                 Text {
                     id: todoTime
                     anchors.left: todoText.left
@@ -739,6 +783,35 @@ Window {
                 }
 
                 Rectangle {
+                    id: editBtn
+                    width: 22
+                    height: 22
+                    radius: 11
+                    anchors.right: expandBtn.left
+                    anchors.rightMargin: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    opacity: rowHover.containsMouse || editArea.containsMouse ? 1 : 0
+                    scale: editArea.pressed ? 0.85 : 1
+                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    color: editArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.1) : "transparent"
+                    Behavior on color { ColorAnimation { duration: 160 } }
+
+                    IconGlyph {
+                        anchors.centerIn: parent
+                        kind: "edit"
+                        size: 10
+                        color: editArea.containsMouse ? accentDeep : mutedInk
+                    }
+                    MouseArea {
+                        id: editArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: startEdit()
+                    }
+                }
+
+                Rectangle {
                     id: delBtn
                     width: 22
                     height: 22
@@ -776,7 +849,27 @@ Window {
                     anchors.fill: parent
                     z: -1
                     hoverEnabled: true
-                    onClicked: toggleRow()
+                    onClicked: {
+                        if (!editInput.visible) toggleRow()
+                    }
+                }
+
+                function startEdit() {
+                    row.expanded = false
+                    editInput.text = model.text
+                    editInput.visible = true
+                    editInput.forceActiveFocus()
+                    editInput.selectAll()
+                }
+
+                function saveEdit() {
+                    if (!editInput.visible) return
+                    var text = editInput.text.trim()
+                    editInput.visible = false
+                    if (text.length > 0 && text !== model.text) {
+                        todoModel.setProperty(index, "text", text)
+                        bridge.updateTodo(model.id, text)
+                    }
                 }
 
                 function toggleRow() {
@@ -969,6 +1062,19 @@ Window {
                 ctx.moveTo(s * 0.16, s * 0.54)
                 ctx.lineTo(s * 0.42, s * 0.8)
                 ctx.lineTo(s * 0.86, s * 0.18)
+                ctx.stroke()
+            } else if (kind === "edit") {
+                ctx.beginPath()
+                ctx.moveTo(s * 0.12, s * 0.88)
+                ctx.lineTo(s * 0.3, s * 0.82)
+                ctx.lineTo(s * 0.82, s * 0.3)
+                ctx.lineTo(s * 0.7, s * 0.18)
+                ctx.lineTo(s * 0.18, s * 0.7)
+                ctx.closePath()
+                ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(s * 0.68, s * 0.16)
+                ctx.lineTo(s * 0.84, s * 0.32)
                 ctx.stroke()
             } else if (kind === "plus") {
                 ctx.beginPath()

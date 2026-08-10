@@ -102,6 +102,10 @@ class NoteBridge(QObject):
     def toggleTodo(self, todo_id, done):
         self.store.toggle_todo(todo_id, done)
 
+    @Slot(int, str)
+    def updateTodo(self, todo_id, text):
+        self.store.update_todo(todo_id, text)
+
     @Slot(int)
     def deleteTodo(self, todo_id):
         self.store.delete_todo(todo_id)
