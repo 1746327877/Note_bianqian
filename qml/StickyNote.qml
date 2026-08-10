@@ -512,7 +512,8 @@ Window {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 7
+            height: 14
+            z: 10
             cursorShape: Qt.SizeVerCursor
             onPressed: beginResize(Qt.TopEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -523,7 +524,8 @@ Window {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 7
+            height: 14
+            z: 10
             cursorShape: Qt.SizeVerCursor
             onPressed: beginResize(Qt.BottomEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -534,7 +536,8 @@ Window {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 7
+            width: 14
+            z: 10
             cursorShape: Qt.SizeHorCursor
             onPressed: beginResize(Qt.LeftEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -545,7 +548,8 @@ Window {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 7
+            width: 14
+            z: 10
             cursorShape: Qt.SizeHorCursor
             onPressed: beginResize(Qt.RightEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -555,8 +559,9 @@ Window {
             id: resizeTopLeft
             anchors.top: parent.top
             anchors.left: parent.left
-            width: 14
-            height: 14
+            width: 20
+            height: 20
+            z: 10
             cursorShape: Qt.SizeFDiagCursor
             onPressed: beginResize(Qt.TopEdge | Qt.LeftEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -566,8 +571,9 @@ Window {
             id: resizeTopRight
             anchors.top: parent.top
             anchors.right: parent.right
-            width: 14
-            height: 14
+            width: 20
+            height: 20
+            z: 10
             cursorShape: Qt.SizeBDiagCursor
             onPressed: beginResize(Qt.TopEdge | Qt.RightEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -577,8 +583,9 @@ Window {
             id: resizeBottomLeft
             anchors.bottom: parent.bottom
             anchors.left: parent.left
-            width: 14
-            height: 14
+            width: 20
+            height: 20
+            z: 10
             cursorShape: Qt.SizeBDiagCursor
             onPressed: beginResize(Qt.BottomEdge | Qt.LeftEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -588,8 +595,9 @@ Window {
             id: resizeBottomRight
             anchors.bottom: parent.bottom
             anchors.right: parent.right
-            width: 14
-            height: 14
+            width: 20
+            height: 20
+            z: 10
             cursorShape: Qt.SizeFDiagCursor
             onPressed: beginResize(Qt.BottomEdge | Qt.RightEdge, mouse.globalPosition.x, mouse.globalPosition.y)
             onPositionChanged: applyResize(mouse.globalPosition.x, mouse.globalPosition.y)
@@ -602,6 +610,7 @@ Window {
                 id: row
                 width: list.width
                 property bool expanded: false
+                property bool editing: false
                 property bool isLong: model.text.length > 12
 
                 height: expanded
@@ -674,6 +683,7 @@ Window {
                     anchors.rightMargin: 8
                     anchors.top: parent.top
                     anchors.topMargin: 7
+                    visible: !editing
                     height: expanded ? implicitHeight : 18
                     Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     text: model.text
@@ -709,26 +719,39 @@ Window {
 
                 TextInput {
                     id: editInput
-                    anchors.left: todoText.left
-                    anchors.right: expandBtn.left
+                    anchors.left: check.right
+                    anchors.leftMargin: 10
+                    anchors.right: delBtn.left
                     anchors.rightMargin: 8
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: false
+                    anchors.top: parent.top
+                    anchors.topMargin: 4
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 4
+                    visible: editing
                     z: 2
                     color: inkColor
                     font.family: "Microsoft YaHei"
                     font.pixelSize: 13
                     selectByMouse: true
                     clip: true
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: 8
+                    rightPadding: 8
 
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: -4
-                        radius: 5
-                        color: Qt.rgba(255, 255, 255, 0.7)
-                        border.width: 1
+                        radius: 6
+                        color: "#FFFFFF"
+                        border.width: 1.5
                         border.color: accentDeep
                         z: -1
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true
+                            shadowBlur: 0.4
+                            shadowColor: Qt.rgba(0.1, 0.07, 0.04, 0.2)
+                            shadowVerticalOffset: 1
+                        }
                     }
 
                     onAccepted: saveEdit()
@@ -742,6 +765,7 @@ Window {
                     anchors.left: todoText.left
                     anchors.top: todoText.bottom
                     anchors.topMargin: 2
+                    visible: !editing
                     text: root.formatTime(model.created_at, model.done_at, done)
                     color: Qt.rgba(0.29, 0.25, 0.21, 0.5)
                     font.family: "Microsoft YaHei"
@@ -758,18 +782,17 @@ Window {
                     anchors.right: delBtn.left
                     anchors.rightMargin: 4
                     anchors.verticalCenter: parent.verticalCenter
-                    opacity: row.isLong ? 1 : 0
+                    visible: row.isLong && !editing
                     scale: expandArea.pressed ? 0.85 : 1
                     Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
-                    color: expandArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.1) : "transparent"
+                    color: expandArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.12) : "transparent"
                     Behavior on color { ColorAnimation { duration: 160 } }
 
                     IconGlyph {
                         anchors.centerIn: parent
                         kind: "chevron"
-                        size: 9
-                        color: mutedInk
+                        size: 10
+                        color: expandArea.containsMouse ? inkColor : mutedInk
                         rotation: row.expanded ? 180 : 0
                         Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     }
@@ -777,7 +800,6 @@ Window {
                         id: expandArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        enabled: row.isLong
                         onClicked: row.expanded = !row.expanded
                     }
                 }
@@ -790,11 +812,10 @@ Window {
                     anchors.right: expandBtn.left
                     anchors.rightMargin: 4
                     anchors.verticalCenter: parent.verticalCenter
-                    opacity: rowHover.containsMouse || editArea.containsMouse ? 1 : 0
+                    visible: !editing
                     scale: editArea.pressed ? 0.85 : 1
                     Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
-                    color: editArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.1) : "transparent"
+                    color: editArea.containsMouse ? Qt.rgba(0.27, 0.22, 0.16, 0.12) : "transparent"
                     Behavior on color { ColorAnimation { duration: 160 } }
 
                     IconGlyph {
@@ -819,6 +840,7 @@ Window {
                     anchors.right: parent.right
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
+                    visible: !editing
                     scale: delArea.pressed ? 0.85 : 1
                     Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                     color: delArea.containsMouse ? doneColor : Qt.rgba(0.6, 0.25, 0.15, 0.15)
@@ -856,16 +878,16 @@ Window {
 
                 function startEdit() {
                     row.expanded = false
+                    row.editing = true
                     editInput.text = model.text
-                    editInput.visible = true
                     editInput.forceActiveFocus()
                     editInput.selectAll()
                 }
 
                 function saveEdit() {
-                    if (!editInput.visible) return
+                    if (!row.editing) return
                     var text = editInput.text.trim()
-                    editInput.visible = false
+                    row.editing = false
                     if (text.length > 0 && text !== model.text) {
                         todoModel.setProperty(index, "text", text)
                         bridge.updateTodo(model.id, text)
