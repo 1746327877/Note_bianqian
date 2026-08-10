@@ -1,8 +1,9 @@
 import random
 from pathlib import Path
 
+import shiboken6
 from PySide6.QtCore import QObject, Slot, QUrl
-from PySide6.QtQml import QQmlComponent
+from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 PALETTE = ["#FDF6E3", "#FBE7D0", "#E4F0E3", "#ECE7F5", "#F6E4E4"]
 TAPES = ["#E8B84B", "#E8954B", "#8AB06A", "#A892D6", "#D68A8A"]
@@ -49,8 +50,16 @@ class NoteBridge(QObject):
         })
         if obj is None:
             return
+        # Keep ownership in C++: otherwise the QML engine may garbage-collect
+        # the window while Python still holds a reference, which later
+        # crashes with "Internal C++ object already deleted".
+        QQmlEngine.setObjectOwnership(obj, QQmlEngine.ObjectOwnership.CppOwnership)
         obj.show()
         self.windows[note_id] = obj
+
+    @staticmethod
+    def _alive(obj):
+        return obj is not None and shiboken6.isValid(obj)
 
     def load_main_note(self):
         note_id = self.store.get_or_create_main_note()
@@ -66,7 +75,8 @@ class NoteBridge(QObject):
 
     def close_all(self):
         for obj in list(self.windows.values()):
-            obj.close()
+            if self._alive(obj):
+                obj.close()
         self.windows.clear()
 
     @Slot(int, result=list)
@@ -100,14 +110,19 @@ class NoteBridge(QObject):
     def deleteNote(self, note_id):
         # 单便签模式:关闭只隐藏窗口,不删除任何数据
         obj = self.windows.get(note_id)
-        if obj is not None:
+        if self._alive(obj):
             obj.hide()
 
     @Slot()
     def showMainNote(self):
         if self.windows:
-            for obj in self.windows.values():
-                obj.show()
+            shown = False
+            for obj in list(self.windows.values()):
+                if self._alive(obj):
+                    obj.show()
+                    shown = True
+            if not shown:
+                self.load_main_note()
         else:
             self.load_main_note()
 
